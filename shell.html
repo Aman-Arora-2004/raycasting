@@ -20,35 +20,27 @@
     <canvas id="canvas"></canvas>
     <script>
         var canvas = document.getElementById('canvas');
+        var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        var w = window.innerWidth;
+        var h = window.innerHeight;
 
-        function resizeCanvas() {
-            var w = window.innerWidth;
-            var h = window.innerHeight;
-            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-            if (isMobile) {
-                var isLandscape = w > h;
-                if (isLandscape) {
-                    // phone landscape: fill width, leave room for browser bars
-                    canvas.width  = w;
-                    canvas.height = Math.floor(h * 0.95);
-                } else {
-                    // phone portrait: square-ish view
-                    canvas.width  = Math.floor(w * 1);
-                    canvas.height = h;
-                }
-            } else {
-                // desktop: full window
+        if (isMobile) {
+            if (w > h) {
+                // landscape
                 canvas.width  = w;
-                canvas.height = h;
+                canvas.height = Math.floor(h * 0.85);
+            } else {
+                // portrait
+                canvas.width  = w;
+                canvas.height = Math.floor(h * 0.5);
             }
-
-            canvas.style.width  = canvas.width  + 'px';
-            canvas.style.height = canvas.height + 'px';
+        } else {
+            canvas.width  = w;
+            canvas.height = h;
         }
 
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        canvas.style.width  = canvas.width  + 'px';
+        canvas.style.height = canvas.height + 'px';
 
         var Module = {
             canvas: canvas
