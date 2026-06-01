@@ -13,21 +13,45 @@
         }
         #canvas {
             display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-        @media (max-width: 900px) {
-            #canvas {
-                height: 55vh;
-            }
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <script>
+        var canvas = document.getElementById('canvas');
+
+        function resizeCanvas() {
+            var w = window.innerWidth;
+            var h = window.innerHeight;
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                var isLandscape = w > h;
+                if (isLandscape) {
+                    // phone landscape: fill width, leave room for browser bars
+                    canvas.width  = w;
+                    canvas.height = Math.floor(h * 0.85);
+                } else {
+                    // phone portrait: square-ish view
+                    canvas.width  = w;
+                    canvas.height = Math.floor(h * 0.5);
+                }
+            } else {
+                // desktop: full window
+                canvas.width  = w;
+                canvas.height = h;
+            }
+
+            canvas.style.width  = canvas.width  + 'px';
+            canvas.style.height = canvas.height + 'px';
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
         var Module = {
-            canvas: document.getElementById('canvas')
+            canvas: canvas
         };
     </script>
     {{{ SCRIPT }}}
