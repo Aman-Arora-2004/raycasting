@@ -2,19 +2,29 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Aman Arora Raycaster</title>
     <style>
-        body { margin: 0; background: black; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: black;
+        }
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
-    <canvas id="canvas" width="1600" height="800"></canvas>
-<script>
-    var Module = {
-        canvas: document.getElementById('canvas')
-    };
-</script>
+    <canvas id="canvas"></canvas>
+    <script>
+        var Module = {
+            canvas: document.getElementById('canvas')
+        };
+    </script>
     <script async type="text/javascript" src="index.js"></script>
 </body>
 </html>
