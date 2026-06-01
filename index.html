@@ -34,8 +34,8 @@
                     canvas.height = Math.floor(h * 0.85);
                 } else {
                     // phone portrait: square-ish view
-                    canvas.width  = w;
-                    canvas.height = Math.floor(h * 0.5);
+                    canvas.width  = Math.floor(w * 0.5);
+                    canvas.height = h;
                 }
             } else {
                 // desktop: full window
