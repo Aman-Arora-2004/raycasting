@@ -3,6 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Aman Arora Raycaster</title>
     <style>
         html, body {
@@ -25,6 +27,15 @@
             canvas: document.getElementById('canvas')
         };
     </script>
+    <div id="fs-prompt" style="position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:20px;z-index:9999;cursor:pointer">
+    Tap to play fullscreen
+</div>
+<script>
+    document.getElementById('fs-prompt').addEventListener('click', function() {
+        document.documentElement.requestFullscreen();
+        this.remove();
+    });
+</script>
     <script async type="text/javascript" src="index.js"></script>
 </body>
 </html>
