@@ -7,7 +7,7 @@ The project renders a first-person 3D view of a tile-based map using the DDA (Di
 
 ### 3D Raycasting
 Despite appearing three dimensional, the entire game world is a flat 2D grid. There are no 3D coordinates, just a 2D array of 1s and 0s and a player with an X position, Y position, and a facing angle.
-The 3D view is produced by sweeping a ray across the player's field of view for each vertical column of the screen. Each ray travels through the 2D map using the DDA algorithm until it hits a wall cell. The distance the ray travelled determines how tall to draw that column — close walls are tall, far walls are short. Repeat across every column and the flat grid looks like a 3D corridor.
+The 3D view is produced by sweeping a ray across the player's field of view for each vertical column of the screen. Each ray travels through the 2D map using the DDA algorithm until it hits a wall cell. The distance the ray travelled determines how tall to draw that column - close walls are tall, far walls are short. Repeat across every column and the flat grid looks like a 3D corridor.
 DDA is used rather than stepping pixel by pixel because it jumps directly from grid boundary to grid boundary, only checking cells the ray actually passes through, making it significantly faster.
 A fisheye correction is applied before calculating wall height. Rays at the edges of the FOV travel a longer diagonal path to the same wall than rays cast straight ahead, which without correction makes walls appear curved. Multiplying the raw distance by the cosine of the ray's angle offset flattens this out.
 
@@ -92,7 +92,7 @@ project/
 ## File Descriptions
 
 ### `types.h`
-Header-only file that defines all shared types and constants used across the project. Contains the `Player`, `Circle`, and `Ray` structs, all `#define` constants (map dimensions, player speed, FOV, ray counts, colors, etc.), and `extern` declarations for globals that are defined in `raycasting.c`. Every other file includes this.
+Header-only file that defines all shared types and constants used across the project. Contains the `Player`, `Circle`, and `Ray` structs, all `#define` constants (map dimensions, player speed, FOV, ray counts, colors, etc.), and `extern` declarations for globals that are defined in `main.c`. Every other file includes this.
 
 ### `raytracing.h` / `raytracing.c`
 The 2D light simulation system. Owns the light buffer, light source, shadow circle, rays array, and their velocities. Each frame `UpdateLightSim` moves both circles, bounces them off the edges, regenerates rays from the light source, and redraws the buffer. `InitLightSim` must be called once from `main` to allocate the buffer and set initial state. `GetLightBuffer` exposes the buffer to the raycaster for ceiling rendering.
