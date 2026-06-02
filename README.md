@@ -6,7 +6,10 @@ The project renders a first-person 3D view of a tile-based map using the DDA (Di
 ## How It Works
 
 ### 3D Raycasting
-The raycaster works by casting one ray per screen column across the player's field of view. For each ray, the DDA algorithm steps through the map grid to find the nearest wall. The distance to that wall determines the height of the wall slice drawn on screen - closer walls appear taller, further walls appear shorter. A fisheye correction is applied by scaling the raw distance by the cosine of the ray's angle offset from center.
+Despite appearing three dimensional, the entire game world is a flat 2D grid. There are no 3D coordinates, just a 2D array of 1s and 0s and a player with an X position, Y position, and a facing angle.
+The 3D view is produced by sweeping a ray across the player's field of view for each vertical column of the screen. Each ray travels through the 2D map using the DDA algorithm until it hits a wall cell. The distance the ray travelled determines how tall to draw that column — close walls are tall, far walls are short. Repeat across every column and the flat grid looks like a 3D corridor.
+DDA is used rather than stepping pixel by pixel because it jumps directly from grid boundary to grid boundary, only checking cells the ray actually passes through, making it significantly faster.
+A fisheye correction is applied before calculating wall height. Rays at the edges of the FOV travel a longer diagonal path to the same wall than rays cast straight ahead, which without correction makes walls appear curved. Multiplying the raw distance by the cosine of the ray's angle offset flattens this out.
 
 ### 2D Light Simulation
 The light simulation runs in a separate pixel buffer the size of the ceiling (full width, half height). A light source emits rays in all directions which are blocked by a shadow-casting circle. Both objects bounce around the buffer each frame. The resulting buffer is scaled and blitted onto the top half of the screen every frame as the ceiling, giving the effect of a dynamic light show overhead.
