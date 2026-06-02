@@ -38,13 +38,15 @@
         canvas.style.width  = canvas.width  + 'px';
         canvas.style.height = canvas.height + 'px';
 
+        var debugDiv = document.createElement('div');
+        debugDiv.style.cssText = 'position:fixed;top:10px;left:10px;color:white;font-size:24px;z-index:9999;pointer-events:none;background:red;padding:5px;';
+        debugDiv.textContent = 'JS loaded';
+        document.body.appendChild(debugDiv);
+
         var Module = {
             canvas: canvas,
             onRuntimeInitialized: function() {
-    		var debugDiv = document.createElement('div');
-debugDiv.style.cssText = 'position:fixed;top:10px;left:10px;color:white;font-size:24px;z-index:9999;pointer-events:none;background:red;padding:5px;';
-debugDiv.textContent = 'JS loaded';
-document.body.appendChild(debugDiv);
+                debugDiv.textContent = 'WASM ready';
                 var swipeStartX = null;
 
                 canvas.addEventListener('touchstart', function(e) {
