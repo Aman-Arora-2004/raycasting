@@ -3,7 +3,14 @@
 
 #include "types.h"
 #include <SDL2/SDL.h>
+#include <emscripten.h>
 #include <emscripten/html5.h>
+
+extern float touch_forward;
+extern float touch_strafe;
+
+EMSCRIPTEN_KEEPALIVE void set_touch_move(float forward, float strafe);
+EMSCRIPTEN_KEEPALIVE void set_touch_rotation(float delta);
 
 // checks if given world position is a valid position for player to move to
 // returns false if position is out of bounds or inside a wall cell

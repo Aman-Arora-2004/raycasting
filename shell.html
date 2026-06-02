@@ -45,6 +45,24 @@
         var Module = {
             canvas: canvas
         };
+        var swipeStartX = null;
+
+	canvas.addEventListener('touchstart', function(e) {
+	    var touch = e.changedTouches[0];
+	    swipeStartX = touch.clientX;
+	}, { passive: true });
+
+	canvas.addEventListener('touchmove', function(e) {
+	    if (swipeStartX === null) return;
+	    var touch = e.changedTouches[0];
+	    var dx = touch.clientX - swipeStartX;
+	    swipeStartX = touch.clientX; // update so it's a delta per frame, not total
+	    Module._set_touch_rotation(dx * 0.004);
+	}, { passive: true });
+
+	canvas.addEventListener('touchend', function(e) {
+	    swipeStartX = null;
+	}, { passive: true });
     </script>
     {{{ SCRIPT }}}
 </body>

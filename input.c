@@ -1,6 +1,19 @@
 #include "input.h"
 #include <math.h>
 
+float touch_forward = 0.0f;
+float touch_strafe  = 0.0f;
+float touch_rotation = 0.0f;
+
+EMSCRIPTEN_KEEPALIVE void set_touch_move(float forward, float strafe) {
+    touch_forward = forward;
+    touch_strafe  = strafe;
+}
+
+EMSCRIPTEN_KEEPALIVE void set_touch_rotation(float delta) {
+    touch_rotation = delta;
+}
+
 // checks if the given world position is a valid position for the player to move to
 bool CanMoveTo(float x, float y) 
 {
@@ -64,6 +77,21 @@ void HandleInput()
 			player.y = new_y;
 		}
 	}
+	// touch movement
+	if (touch_forward != 0.0f) {
+    		float new_x = player.x + cos(player.angle) * touch_forward;
+    		float new_y = player.y + sin(player.angle) * touch_forward;
+    	if (CanMoveTo(new_x, new_y)) { player.x = new_x; player.y = new_y; }
+	}
+	if (touch_strafe != 0.0f) {
+    		float new_x = player.x + cos(player.angle + M_PI / 2) * touch_strafe;
+    		float new_y = player.y + sin(player.angle + M_PI / 2) * touch_strafe;
+    		if (CanMoveTo(new_x, new_y)) { player.x = new_x; player.y = new_y; 
+    	}
+}
+// touch rotation
+player.angle += touch_rotation;
+touch_rotation = 0.0f; // consume it each frame
 }
 
 // emscripten mouse move callback, called by the browser on every mouse movement
