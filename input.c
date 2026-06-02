@@ -8,7 +8,6 @@ float touch_rotation = 0.0f;
 EMSCRIPTEN_KEEPALIVE void set_touch_move(float forward, float strafe) {
     touch_forward = forward;
     touch_strafe  = strafe;
-    debugDiv.textContent = 'dx:' + dx.toFixed(2);
 }
 
 EMSCRIPTEN_KEEPALIVE void set_touch_rotation(float delta) {

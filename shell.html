@@ -38,10 +38,6 @@
         canvas.style.width  = canvas.width  + 'px';
         canvas.style.height = canvas.height + 'px';
 
-	var debugDiv = document.createElement('div');
-		debugDiv.style.cssText = 'position:fixed;top:10px;left:10px;color:white;font-size:20px;z-index:999;pointer-events:none;';
-		debugDiv.textContent = 'ready';
-		document.body.appendChild(debugDiv);
         var Module = {
             canvas: canvas,
             onRuntimeInitialized: function() {
