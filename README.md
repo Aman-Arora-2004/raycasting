@@ -1,1 +1,141 @@
-# raycasting
+# Aman Arora Raycaster
+
+A 3D raycaster built from scratch in C using SDL2, compiled to WebAssembly with Emscripten for browser deployment. 
+The project renders a first-person 3D view of a tile-based map using the DDA (Digital Differential Analysis) algorithm, with a 2D ray tracing light simulation displayed as the ceiling.
+
+## How It Works
+
+### 3D Raycasting
+The raycaster works by casting one ray per screen column across the player's field of view. For each ray, the DDA algorithm steps through the map grid to find the nearest wall. The distance to that wall determines the height of the wall slice drawn on screen — closer walls appear taller, further walls appear shorter. A fisheye correction is applied by scaling the raw distance by the cosine of the ray's angle offset from center.
+
+### 2D Light Simulation
+The light simulation runs in a separate pixel buffer the size of the ceiling (full width, half height). A light source emits rays in all directions which are blocked by a shadow-casting circle. Both objects bounce around the buffer each frame. The resulting buffer is scaled and blitted onto the top half of the screen every frame as the ceiling, giving the effect of a dynamic light show overhead.
+
+### Ceiling and Floor
+The top half of the screen is filled by scaling the light simulation buffer to fit. The bottom half is a flat dark gray representing the floor.
+
+### Minimap
+A small minimap is drawn in the bottom left corner showing the map layout and the player's current position.
+
+---
+
+## Controls
+
+| Input | Action |
+|---|---|
+| `W` | Move forward |
+| `S` | Move backward |
+| `A` | Strafe left |
+| `D` | Strafe right |
+| Mouse X | Rotate camera |
+
+---
+
+## Building and Running
+
+### Prerequisites
+- [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html)
+- Python 3 (for local HTTP server)
+
+### Steps
+
+```bash
+# 1. activate the emscripten environment
+source /emsdk/emsdk_env.sh
+
+# 2. build the project
+./build.sh
+
+# 3. serve locally
+python -m http.server 8080
+```
+
+Then open `http://localhost:8080` in your browser.
+
+### build.sh
+```bash
+emcc main.c raytracing.c raycasting.c input.c -o index.html \
+  --shell-file shell.html \
+  -s USE_SDL=2 \
+  -s WASM=1 \
+  -s ALLOW_MEMORY_GROWTH=1 \
+  -s EXPORTED_FUNCTIONS='["_main"]' \
+  -s EXPORTED_RUNTIME_METHODS='[]'
+```
+
+---
+
+## File Structure
+
+```
+project/
+├── types.h         # shared structs, defines, and extern declarations
+├── raytracing.h     # 2D light simulation interface
+├── raytracing.c     # 2D light simulation implementation
+├── raycasting.h     # 3D wall rendering interface
+├── raycasting.c     # 3D wall rendering implementation
+├── input.h         # player input interface
+├── input.c         # player input implementation
+├── raycasting.c    # globals, map, main loop, entry point
+├── shell.html      # HTML template for Emscripten output
+└── build.sh        # build script
+```
+
+---
+
+## File Descriptions
+
+### `types.h`
+Header-only file that defines all shared types and constants used across the project. Contains the `Player`, `Circle`, and `Ray` structs, all `#define` constants (map dimensions, player speed, FOV, ray counts, colors, etc.), and `extern` declarations for globals that are defined in `raycasting.c`. Every other file includes this.
+
+### `raytracer.h` / `raytracer.c`
+The 2D light simulation system. Owns the light buffer, light source, shadow circle, rays array, and their velocities. Each frame `UpdateLightSim` moves both circles, bounces them off the edges, regenerates rays from the light source, and redraws the buffer. `InitLightSim` must be called once from `main` to allocate the buffer and set initial state. `GetLightBuffer` exposes the buffer to the raycaster for ceiling rendering.
+
+Key functions:
+- `InitLightSim(w, h)` — allocates the buffer and sets up initial positions and velocities
+- `UpdateLightSim()` — advances the simulation one frame
+- `UpdateLightBuffer()` — redraws the light buffer from scratch each frame
+- `GenerateRays(circle, rays)` — emits RAYS_NUMBER rays evenly in all directions
+- `GetLightBuffer()` — returns a pointer to the pixel buffer
+
+### `raycaster.h` / `raycaster.c`
+The 3D rendering system. Casts rays across the player's FOV using DDA to find wall distances, draws shaded vertical wall slices, blits the light buffer as the ceiling, and draws the minimap.
+
+Key functions:
+- `DrawFOV(surface, player)` — main 3D rendering function, one ray per screen column
+- `GetDistance(player, angle)` — DDA ray cast, returns distance to nearest wall
+- `DrawVerticalLine(surface, height, x, color, width)` — draws a single wall slice
+- `GetShadedColor(distance)` — returns a gray shade based on wall distance
+- `DrawCeiling(surface)` — scales and blits the light buffer onto the top half of the screen
+- `DrawMiniMap(surface)` — draws the overhead minimap in the bottom left corner
+
+### `input.h` / `input.c`
+Handles all player input. Reads keyboard state each frame for WASD movement, checks collision against the map before applying movement, and handles mouse rotation via an Emscripten mouse callback registered in `main`.
+
+Key functions:
+- `HandleInput()` — reads keyboard state and moves the player
+- `CanMoveTo(x, y)` — returns true if the world position is inside an empty map cell
+- `mouse_move_callback(...)` — Emscripten callback that rotates the player on mouse move
+
+### `raycasting.c`
+The entry point and main loop. Defines all shared globals (`WIDTH`, `HEIGHT`, `LIGHT_W`, `LIGHT_H`, `map`, `player`, SDL window and surface). Initializes SDL, reads the canvas size from the browser, calls `InitLightSim`, registers the mouse callback, and starts the Emscripten main loop. Each frame the main loop polls SDL events, handles input, updates the light simulation, clears the screen, draws the ceiling, floor, walls, and minimap, then presents the frame.
+
+### `shell.html`
+The HTML template used by Emscripten when generating `index.html`. Sets up the canvas element, detects mobile vs desktop to size the canvas correctly to the full window, and defines the `Module` object that Emscripten attaches to.
+
+---
+
+## Constants Reference
+
+| Constant | Value | Description |
+|---|---|---|
+| `CELL_SIZE` | 80 | Map cell size in pixels |
+| `MAP_WIDTH` | 20 | Map width in cells |
+| `MAP_HEIGHT` | 10 | Map height in cells |
+| `PLAYER_FOV` | 90 | Field of view in degrees |
+| `PLAYER_MOVEMENT_SPEED` | 10 | Movement speed in pixels per frame |
+| `RENDER_DISTANCE` | 1000 | Distance at which walls fade to black |
+| `RAYS_NUMBER` | 750 | Number of rays in the light simulation |
+| `RAY_THICKNESS` | 0.1 | Thickness of each light ray in pixels |
+| `RAY_STEP_SIZE` | 4 | Pixels advanced per ray march step |
+| `LIGHT_MARGIN` | 50 | Minimum distance light source stays from edge |# raycasting
