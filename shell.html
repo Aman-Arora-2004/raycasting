@@ -48,21 +48,24 @@
         var swipeStartX = null;
 
 	canvas.addEventListener('touchstart', function(e) {
+	    e.preventDefault();
 	    var touch = e.changedTouches[0];
 	    swipeStartX = touch.clientX;
-	}, { passive: true });
+	}, { passive: false });
 
 	canvas.addEventListener('touchmove', function(e) {
+	    e.preventDefault();
 	    if (swipeStartX === null) return;
 	    var touch = e.changedTouches[0];
 	    var dx = touch.clientX - swipeStartX;
-	    swipeStartX = touch.clientX; // update so it's a delta per frame, not total
-	    Module._set_touch_rotation(dx * 0.004);
-	}, { passive: true });
+	    swipeStartX = touch.clientX;
+	    Module.ccall('set_touch_rotation', null, ['number'], [dx * 0.004]);
+	}, { passive: false });
 
 	canvas.addEventListener('touchend', function(e) {
+	    e.preventDefault();
 	    swipeStartX = null;
-	}, { passive: true });
+	}, { passive: false });
     </script>
     {{{ SCRIPT }}}
 </body>
