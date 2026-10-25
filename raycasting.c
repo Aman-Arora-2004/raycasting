@@ -44,6 +44,52 @@ void DrawMiniMap(SDL_Surface *psurface)
 	SDL_FillRect(psurface, &player_dot, COLOR_PLAYER);
 }
 
+/*
+ * Draw a remote multiplayer player on the minimap.
+ *
+ * This uses the same coordinate conversion as the
+ * local player dot inside DrawMiniMap().
+ */
+void DrawRemotePlayerOnMiniMap(
+    SDL_Surface *psurface,
+    Player remote_player
+)
+{
+    int minimap_scale = 10;
+
+    int offset_x = 10;
+    int offset_y = HEIGHT - (MAP_HEIGHT * minimap_scale) - 10;
+
+    /*
+     * Convert the remote player's world coordinates
+     * into minimap coordinates.
+     */
+    SDL_Rect remote_player_dot =
+    {
+        offset_x + (int)(remote_player.x / CELL_SIZE * minimap_scale) - 2,
+        offset_y + (int)(remote_player.y / CELL_SIZE * minimap_scale) - 2,
+        4,
+        4
+    };
+
+    /*
+     * SDL_MapRGB guarantees the remote player is red
+     * regardless of the SDL surface's pixel format.
+     */
+    Uint32 remote_color = SDL_MapRGB(
+        psurface->format,
+        255,
+        0,
+        0
+    );
+
+    SDL_FillRect(
+        psurface,
+        &remote_player_dot,
+        remote_color
+    );
+}
+
 // gets player distance from walls using angle
 double GetDistance(Player player, double angle)
 {
