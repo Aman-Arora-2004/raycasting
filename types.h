@@ -13,11 +13,11 @@
 #define CELL_SIZE 80
 
 // map grid dimensions
-#define MAP_WIDTH 20
-#define MAP_HEIGHT 10
+#define MAP_WIDTH 30
+#define MAP_HEIGHT 30
 
 // player render distance in pixels
-#define RENDER_DISTANCE 1000
+#define RENDER_DISTANCE 1200
 
 // player field of view in degrees
 #define PLAYER_FOV 90

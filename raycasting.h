@@ -20,6 +20,24 @@
 // coordinates drawing player as a custom 4x4 square dot
 void DrawMiniMap(SDL_Surface *psurface);
 
+/*
+ * Draws another multiplayer player on the minimap.
+ */
+void DrawRemotePlayerOnMiniMap(
+    SDL_Surface *psurface,
+    Player remote_player,
+    int player_id
+);
+
+
+// draws another multiplayer player as a colored rectangle in 3d view
+void DrawRemotePlayerSprite(
+    SDL_Surface *surface,
+    Player local,
+    Player remote,
+    int player_id
+);
+
 // casts a single ray from the player at 
 // specific angle into a grid based map using DDA
 
