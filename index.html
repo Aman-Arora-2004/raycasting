@@ -23,14 +23,11 @@
         var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         var w = window.innerWidth;
         var h = window.innerHeight;
-
         if (isMobile) {
             if (w > h) {
-                // landscape
                 canvas.width  = w;
                 canvas.height = Math.floor(h * 1);
             } else {
-                // portrait
                 canvas.width  = Math.floor(w * 1);
                 canvas.height = h;
             }
@@ -38,12 +35,41 @@
             canvas.width  = w;
             canvas.height = h;
         }
-
         canvas.style.width  = canvas.width  + 'px';
         canvas.style.height = canvas.height + 'px';
 
+        var debugDiv = document.createElement('div');
+        debugDiv.style.cssText = 'position:fixed;top:10px;left:10px;color:white;font-size:24px;z-index:9999;pointer-events:none;background:red;padding:5px;';
+        debugDiv.textContent = 'JS loaded';
+        document.body.appendChild(debugDiv);
+
         var Module = {
-            canvas: canvas
+            canvas: canvas,
+            onRuntimeInitialized: function() {
+                debugDiv.textContent = 'WASM ready';
+                var swipeStartX = null;
+
+                canvas.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    var touch = e.changedTouches[0];
+                    swipeStartX = touch.clientX;
+                }, { passive: false });
+
+                canvas.addEventListener('touchmove', function(e) {
+                    e.preventDefault();
+                    if (swipeStartX === null) return;
+                    var touch = e.changedTouches[0];
+                    var dx = touch.clientX - swipeStartX;
+                    swipeStartX = touch.clientX;
+                    Module.ccall('set_touch_rotation', null, ['number'], [dx * 0.004]);
+                    debugDiv.textContent = 'dx:' + dx.toFixed(2);
+                }, { passive: false });
+
+                canvas.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    swipeStartX = null;
+                }, { passive: false });
+            }
         };
     </script>
     <script async type="text/javascript" src="index.js"></script>

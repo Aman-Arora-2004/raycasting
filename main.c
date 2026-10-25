@@ -163,6 +163,14 @@ void main_loop()
     SDL_UpdateWindowSurface(pwindow);
 }
 
+// browsers only allow pointer lock after a user action, so lock on click
+// while locked, the cursor is hidden and movementX keeps working with no screen edge
+EM_BOOL click_callback(int eventType, const EmscriptenMouseEvent *e, void *userData)
+{
+    emscripten_request_pointerlock("#canvas", true);
+    return EM_TRUE;
+}
+
 int main(int argc, char *argv[])
 {
     // Read actual browser canvas size
@@ -210,7 +218,7 @@ int main(int argc, char *argv[])
         true,
         mouse_move_callback
     );
-
+    emscripten_set_click_callback("#canvas", NULL, true, click_callback);
     emscripten_set_main_loop(main_loop, 0, 1);
 
     return 0;
