@@ -25,7 +25,17 @@ void DrawMiniMap(SDL_Surface *psurface);
  */
 void DrawRemotePlayerOnMiniMap(
     SDL_Surface *psurface,
-    Player remote_player
+    Player remote_player,
+    int player_id
+);
+
+
+// draws another multiplayer player as a colored rectangle in 3d view
+void DrawRemotePlayerSprite(
+    SDL_Surface *surface,
+    Player local,
+    Player remote,
+    int player_id
 );
 
 // casts a single ray from the player at 

@@ -26,20 +26,51 @@ static bool connected = false;
  */
 static int local_player_id = -1;
 
-/*
- * Latest state received for the other player.
- *
- * For now our project is testing two players,
- * so storing one remote player is enough.
- */
-static RemotePlayerState remote_player =
+// one slot per remote player
+// if active = false, slot is free
+static RemotePlayerState remote_players[MAX_REMOTE_PLAYERS];
+
+//mark every slot as free
+static void ClearRemotePlayers(void)
 {
-    .player_id = -1,
-    .x = 0.0f,
-    .y = 0.0f,
-    .angle = 0.0f,
-    .active = false
-};
+    for (int i = 0; i < MAX_REMOTE_PLAYERS; i++)
+    {
+        remote_players[i].player_id = -1;
+        remote_players[i].x = 0.0f;
+        remote_players[i].y = 0.0f;
+        remote_players[i].angle = 0.0f;
+        remote_players[i].active = false;
+    }
+}
+
+// returns index of the active slot holding this
+// player id, -1 if that player is not tracked yet
+static int FindPlayerSlot(int player_id)
+{
+    for (int i = 0; i < MAX_REMOTE_PLAYERS; i++)
+    {
+        if (remote_players[i].active &&
+            remote_players[i].player_id == player_id)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// returns index of the first free slot
+// -1 if every slot is in use
+static int FindFreeSlot(void)
+{
+    for (int i = 0; i < MAX_REMOTE_PLAYERS; i++)
+    {
+        if (!remote_players[i].active)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
 
 /*
  * Runs when the WebSocket successfully connects.
@@ -181,30 +212,22 @@ static EM_BOOL OnMessage(
          */
         if (values_read == 4)
         {
-            /*
-             * Save the remote player's latest state.
-             */
-            remote_player.player_id = sender_id;
+            //reuse players slot if we already know, otherwise claim a free one
+            int slot = FindPlayerSlot(sender_id);
 
-            remote_player.x = x;
-            remote_player.y = y;
-            remote_player.angle = angle;
+            if (slot < 0)
+            {
+                slot = FindFreeSlot();
+            }
 
-            remote_player.active = true;
-
-            /*
-             * Temporary debug output.
-             *
-             * Later we can remove this once the
-             * remote player is actually being rendered.
-             */
-            printf(
-                "[Network] Player %d -> X: %.2f Y: %.2f Angle: %.4f\n",
-                remote_player.player_id,
-                remote_player.x,
-                remote_player.y,
-                remote_player.angle
-            );
+            if (slot >= 0)
+            {
+                remote_players[slot].player_id = sender_id;
+                remote_players[slot].x = x;
+                remote_players[slot].y = y;
+                remote_players[slot].angle = angle;
+                remote_players[slot].active = true;
+            }
         }
         else
         {
@@ -212,6 +235,32 @@ static EM_BOOL OnMessage(
                 "[Network] Invalid PLAYER message: %s\n",
                 message
             );
+        }
+
+        return EM_TRUE;
+    }
+    /*
+    * -------------------------------------------------
+    * MESSAGE TYPE 3:
+    *
+    * LEAVE|playerId
+    *
+    * Another player disconnected, so free their slot.
+    * -------------------------------------------------
+    */
+    if (strncmp(message, "LEAVE|", 6) == 0)
+    {
+        int left_id;
+
+        if (sscanf(message, "LEAVE|%d", &left_id) == 1)
+        {
+            int slot = FindPlayerSlot(left_id);
+
+            if (slot >= 0)
+            {
+                remote_players[slot].active = false;
+                remote_players[slot].player_id = -1;
+            }
         }
 
         return EM_TRUE;
@@ -258,7 +307,7 @@ static EM_BOOL OnClose(
 
     local_player_id = -1;
 
-    remote_player.active = false;
+    ClearRemotePlayers();
 
     printf(
         "[Network] Connection closed. Code: %d\n",
@@ -295,7 +344,7 @@ void Network_Init(
 
     local_player_id = -1;
 
-    remote_player.active = false;
+    ClearRemotePlayers();
 
     /*
      * Make sure this browser supports WebSockets.
@@ -453,21 +502,26 @@ int Network_GetLocalPlayerId(void)
  * Give the rest of the game access to
  * the latest received remote-player state.
  */
-bool Network_GetRemotePlayerState(
-    RemotePlayerState *out_state
+int Network_GetRemotePlayers(
+    RemotePlayerState *out_states,
+    int max_states
 )
 {
-    if (
-        !remote_player.active ||
-        out_state == NULL
-    )
+    if (out_states == NULL)
     {
-        return false;
+        return 0;
+    }
+    int count = 0;
+
+    for (int i = 0; i < MAX_REMOTE_PLAYERS && count < max_states; i++)
+    {
+        if (remote_players[i].active)
+        {
+            out_states[count++] = remote_players[i];
+        }
     }
 
-    *out_state = remote_player;
-
-    return true;
+    return count;
 }
 
 /*

@@ -2,6 +2,38 @@
 #include "raytracing.h"
 #include <math.h>
 
+//max number of screen columns depth buffer can hold
+
+#define MAX_COLUMNS 4096
+
+//value for columns with no wall hit
+#define DEPTH_FAR 1e9
+
+//wall distance for each column, refilled by drawFOV each frame
+//sprites will compare against this to know if wall is front or behind
+static double depth_buffer[MAX_COLUMNS];
+
+#define SPRITE_HEIGHT_SCALE 0.7
+#define SPRITE_WIDTH_SCALE  0.2
+
+static Uint32 GetPlayerColor(SDL_Surface *surface, int player_id)
+{
+	static const Uint8 colors[6][3] =
+	{
+		{255,   0,   0},   // red
+		{  0, 128, 255},   // blue
+		{255, 255,   0},   // yellow
+		{255,   0, 255},   // magenta
+		{  0, 255, 255},   // cyan
+		{255, 128,   0}    // orange
+	};
+
+	int c = ((player_id % 6) + 6) % 6;
+
+	// SDL_MapRGB converts to the surface's pixel format
+	return SDL_MapRGB(surface->format, colors[c][0], colors[c][1], colors[c][2]);
+}
+
 void DrawMiniMap(SDL_Surface *psurface)
 { 
 	//scale factor for the minimap, each map cell is 10x10 pixels
@@ -52,7 +84,8 @@ void DrawMiniMap(SDL_Surface *psurface)
  */
 void DrawRemotePlayerOnMiniMap(
     SDL_Surface *psurface,
-    Player remote_player
+    Player remote_player,
+	int player_id
 )
 {
     int minimap_scale = 10;
@@ -71,17 +104,8 @@ void DrawRemotePlayerOnMiniMap(
         4,
         4
     };
-
-    /*
-     * SDL_MapRGB guarantees the remote player is red
-     * regardless of the SDL surface's pixel format.
-     */
-    Uint32 remote_color = SDL_MapRGB(
-        psurface->format,
-        255,
-        0,
-        0
-    );
+    // color for this player id (same one the 3D sprite uses)
+    Uint32 remote_color = GetPlayerColor(psurface, player_id);
 
     SDL_FillRect(
         psurface,
@@ -181,6 +205,82 @@ void DrawVerticalLine(SDL_Surface *psurface, double height, double x, Uint32 col
 	SDL_FillRect(psurface,&vertical_rect, color);
 }
 
+void DrawRemotePlayerSprite(SDL_Surface *surface, Player local, Player remote, int player_id)
+// draw another player as a colored rectangle in 3d view
+{
+	double fov_rad = PLAYER_FOV * (M_PI / 180);
+	double half_fov = fov_rad / 2.0;
+
+	// vector from local player to remote player
+	double dx = remote.x - local.x;
+	double dy = remote.y - local.y;
+	double distance = sqrt(dx * dx + dy * dy);
+
+	// standing on top of each other, draw nothing
+	if (distance < 1.0) return;
+
+	// world angle pointing at the remote player
+	double world_angle = atan2(dy, dx);
+
+	// angle relative to where we are facing
+	double relative_angle = world_angle - local.angle;
+
+	// local.angle keeps growing as we turn
+	while (relative_angle >  M_PI) relative_angle -= 2.0 * M_PI;
+	while (relative_angle < -M_PI) relative_angle += 2.0 * M_PI;
+
+	// outside the field of view, skip
+	if (fabs(relative_angle) > half_fov) return;
+
+	// same left-to-right angle mapping DrawFOV uses for the wall columns
+	double screen_center_x = (relative_angle + half_fov) / fov_rad * WIDTH;
+
+	// fisheye-corrected distance, same idea as the walls
+	double corrected_distance = distance * cos(relative_angle);
+	if (corrected_distance < 1.0) corrected_distance = 1.0;
+
+	// same scale as a wall
+	double size = (CELL_SIZE * HEIGHT) / corrected_distance;
+
+	int sprite_h = (int)(size * SPRITE_HEIGHT_SCALE);
+	int sprite_w = (int)(size * SPRITE_WIDTH_SCALE);
+
+	// feet rest on the floor line (same bottom edge a wall slice has)
+	int floor_y = (HEIGHT / 2) + ((int)size / 2);
+
+	SDL_Rect sprite_rect = {
+		(int)screen_center_x - sprite_w / 2,
+		floor_y - sprite_h,
+		sprite_w,
+		sprite_h
+	};
+
+	Uint32 color = GetPlayerColor(surface, player_id);
+
+	// DrawFOV casts WIDTH / 2 rays, so one depth value covers 2 screen pixels
+	int num_columns = WIDTH / 2;
+
+	// draw the sprite one screen column at a time
+	for (int x = sprite_rect.x; x < sprite_rect.x + sprite_rect.w; x++)
+	{
+		// column is off screen, skip
+		if (x < 0 || x >= WIDTH) continue;
+
+		// which depth buffer entry belongs to this screen x
+		int col = (int)((double)x * num_columns / WIDTH);
+
+		// safety: stay inside the depth buffer
+		if (col >= num_columns) col = num_columns - 1;
+		if (col >= MAX_COLUMNS) col = MAX_COLUMNS - 1;
+
+		// a wall is closer than the player in this column, so it hides us
+		if (corrected_distance >= depth_buffer[col]) continue;
+
+		// nothing in front, paint a 1 pixel wide slice of the sprite
+		SDL_Rect slice = { x, sprite_rect.y, 1, sprite_rect.h };
+		SDL_FillRect(surface, &slice, color);
+	}
+}
 Uint32 GetShadedColor(double distance)
 // calculates wall shading based on distance from player
 {
@@ -207,6 +307,12 @@ void DrawFOV(SDL_Surface *surface, Player player)
 
 	for (int i = 0; i < num_columns; i++)
 	{
+		//never past the end of depth buffer
+		if (i >= MAX_COLUMNS) break;
+
+		//assume no wall until ray hits one
+		depth_buffer[i] = DEPTH_FAR;
+
 		// how much to offset the ray angle
 		// when rendering 3d column, 0 is on the far left of screen, to render from left to right 
 		// must subtract half_fov to make the position the leftmost val of fov
@@ -223,6 +329,9 @@ void DrawFOV(SDL_Surface *surface, Player player)
 		// gets rid of fisheye perspective
 		double corrected_distance = raw_distance * cos(ray_angle_offset);
 		if (corrected_distance < 1.0) corrected_distance = 1.0;
+
+		// remember how far wall is in this column (used for sprite)
+		depth_buffer[i] = corrected_distance;
 		
 		// calculate the height of the wall based on cell size, map height 
 		//and the corrected distance from particular column

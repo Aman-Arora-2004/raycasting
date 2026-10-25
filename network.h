@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+//max num of other players it can track
+// 4 + 1 (localhost) = 5
+#define MAX_REMOTE_PLAYERS 4
 /*
  * Stores the latest known state of another player.
  *
@@ -63,8 +66,9 @@ int Network_GetLocalPlayerId(void);
  * true  = remote player data is available
  * false = no remote player data has been received yet
  */
-bool Network_GetRemotePlayerState(
-    RemotePlayerState *out_state
+int Network_GetRemotePlayers(
+    RemotePlayerState *out_states,
+    int max_states
 );
 
 /*

@@ -12,11 +12,18 @@
  *
  * Server forwards:
  * PLAYER|playerId|x|y|angle
+ * 
+ * Server sends:    WELCOME|playerId   (to a new player)
+ *                  LEAVE|playerId     (to everyone when a player leaves)
  */
 
 const WebSocket = require("ws");
 
 const PORT = 8081;
+const MAX_PLAYERS = 5;
+
+// set to false to stop printing every position update
+const LOG_STATE = true;
 
 const server = new WebSocket.Server({
     port: PORT
@@ -29,7 +36,15 @@ console.log(
 );
 
 server.on("connection", (socket) => {
+    // new socket is counted in server.clients, more than MAX_PLAYERS mean its full
+    if (server.clients.size > MAX_PLAYERS)
+    {
+        console.log("[Server] Game full, rejecting connection.");
 
+        socket.rejected = true;
+        socket.close(1013, "Server full");
+        return;
+    }
     const playerId = nextPlayerId++;
 
     socket.playerId = playerId;
@@ -90,6 +105,16 @@ server.on("connection", (socket) => {
             return;
         }
 
+        //print what player sent
+        if (LOG_STATE)
+        {
+            const degrees = (angle * 180 / Math.PI).toFixed(1);
+
+            console.log(
+                `[Server] Player ${playerId}: x=${x} y=${y} angle=${angle} (${degrees} deg)`
+            );
+        }
+
         const outgoingMessage =
             `PLAYER|${playerId}|${x}|${y}|${angle}`;
 
@@ -113,6 +138,15 @@ server.on("connection", (socket) => {
         console.log(
             `[Server] Player ${playerId} disconnected.`
         );
+
+        // tell every other client player left
+        server.clients.forEach((client) => {
+
+            if (client.readyState === WebSocket.OPEN)
+            {
+                client.send(`LEAVE|${playerId}`);
+            }
+        });
     });
 
     socket.on("error", (error) => {
